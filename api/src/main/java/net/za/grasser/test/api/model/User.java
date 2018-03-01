@@ -7,6 +7,8 @@
 
 package net.za.grasser.test.api.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -18,7 +20,7 @@ import javax.persistence.Table;
  * A user that can be persisted in the table simple_user to avoid conflicts with system tables.
  */
 @Entity
-@Table(name="simple_user")
+@Table(name = "simple_user")
 public class User {
 
     @Id
@@ -28,7 +30,10 @@ public class User {
     private String password;
     @Column(length = 25)
     private String phone;
-    @Column(length = 25)
+    @Column(length = 250)
+    @JsonIgnore
+    private String salt;
+    @Column(length = 25, unique = true)
     private String username;
 
     public User() {
@@ -51,6 +56,11 @@ public class User {
         return phone;
     }
 
+    public String getSalt() {
+
+        return salt;
+    }
+
     public String getUsername() {
 
         return username;
@@ -69,6 +79,11 @@ public class User {
     public void setPhone(String phone) {
 
         this.phone = phone;
+    }
+
+    public void setSalt(String salt) {
+
+        this.salt = salt;
     }
 
     public void setUsername(String username) {
