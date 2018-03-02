@@ -7,11 +7,10 @@
 
 package net.za.grasser.test.api.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import java.util.Date;
 
 import javax.persistence.Entity;
+import javax.persistence.EntityListeners;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -20,11 +19,14 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 /**
  *
  */
 @Entity
 @Table(name = "simple_session")
+@EntityListeners(AuditingEntityListener.class)
 public class Session {
 
     @Id

@@ -11,16 +11,20 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EntityListeners;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /**
  * A user that can be persisted in the table simple_user to avoid conflicts with system tables.
  */
 @Entity
 @Table(name = "simple_user")
+@EntityListeners(AuditingEntityListener.class)
 public class User {
 
     @Id
