@@ -1,43 +1,45 @@
 /*
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * Login.java
+ * ActiveUser.java
  * Copyright 2018 Medical EDI Services (PTY) Ltd. All rights reserved.
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  */
 
 package net.za.grasser.test.api.model;
 
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.Table;
+
 /**
- *
+ * Linked to the active_users view.
  */
-public class Login {
+@Entity
+@Table(name = "active_users")
+public class ActiveUser {
 
+    @Id
+    Long id;
     String username;
-    String password;
-
-    public Login() {
+    String phone;
+    
+    /**
+     * Default Constructor.
+     */
+    public ActiveUser() {
 
         super();
     }
 
+    
     public String getUsername() {
-
+    
         return username;
     }
 
-    public void setUsername(String username) {
-
-        this.username = username;
+    
+     public String getPhone() {
+    
+        return phone;
     }
-
-    public String getPassword() {
-
-        return password;
-    }
-
-    public void setPassword(String password) {
-
-        this.password = password;
-    }
-
 }

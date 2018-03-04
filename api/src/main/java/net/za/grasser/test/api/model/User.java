@@ -8,6 +8,7 @@
 package net.za.grasser.test.api.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -23,7 +24,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
  * A user that can be persisted in the table simple_user to avoid conflicts with system tables.
  */
 @Entity
-@Table(name = "simple_user")
+@Table(name = "api_user")
 @EntityListeners(AuditingEntityListener.class)
 public class User {
 
@@ -31,6 +32,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(length = 250)
+    @JsonIgnore
     private String password;
     @Column(length = 25)
     private String phone;
@@ -50,6 +52,7 @@ public class User {
         return id;
     }
 
+    @JsonIgnore
     public String getPassword() {
 
         return password;
@@ -75,6 +78,7 @@ public class User {
         this.id = id;
     }
 
+    @JsonProperty
     public void setPassword(String password) {
 
         this.password = password;

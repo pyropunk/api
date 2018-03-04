@@ -7,6 +7,7 @@
 
 package net.za.grasser.test.api.model;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 
 import javax.persistence.Entity;
@@ -18,6 +19,8 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
 
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -25,21 +28,28 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
  *
  */
 @Entity
-@Table(name = "simple_session")
+@Table(name = "api_session")
 @EntityListeners(AuditingEntityListener.class)
 public class Session {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Date active;
-    private Date ended;
-    private Date started;
+    private LocalDateTime active;
+    private LocalDateTime ended;
+    private LocalDateTime started;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
     private String token;
 
+    /*
+    private Date createdAt;
+    private Date createdBy;
+    private Date updatedAt;
+    private Date updatedBy;
+    */
+    
     /**
      * Constructor
      */
@@ -58,17 +68,17 @@ public class Session {
         this.id = id;
     }
 
-    public Date getActive() {
+    public LocalDateTime getActive() {
 
         return active;
     }
 
-    public Date getEnded() {
+    public LocalDateTime getEnded() {
 
         return ended;
     }
 
-    public Date getStarted() {
+    public LocalDateTime getStarted() {
 
         return started;
     }
@@ -83,17 +93,17 @@ public class Session {
         return user;
     }
 
-    public void setActive(Date active) {
+    public void setActive(LocalDateTime active) {
 
         this.active = active;
     }
 
-    public void setEnded(Date ended) {
+    public void setEnded(LocalDateTime ended) {
 
         this.ended = ended;
     }
 
-    public void setStarted(Date started) {
+    public void setStarted(LocalDateTime started) {
 
         this.started = started;
     }

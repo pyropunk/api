@@ -12,19 +12,19 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.ArrayList;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.temporal.TemporalUnit;
 import java.util.Base64;
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.PermissionDeniedDataAccessException;
-import org.springframework.data.repository.CrudRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -65,7 +65,7 @@ public class UserController {
      * 
      * @param user
      * @param digest
-     * @return
+     * @return a SHA-256 encoded, salted password hash
      * @throws NoSuchAlgorithmException
      */
     protected static String encode(String s, String p) throws NoSuchAlgorithmException {
@@ -74,22 +74,36 @@ public class UserController {
         return Base64.getEncoder().encodeToString(digest.digest((s + p).getBytes(StandardCharsets.UTF_8)));
     }
 
+    /**
+     * Add a user to the database.<br>
+     * Requirement 1: Allow users to submit their details containing a username, phone number and password.
+     * 
+     * @param user
+     *            - user to be added
+     * @return 201 if user could be created,<br>
+     *         403 if user already exists or cannot be created,<br>
+     *         500 if the password cannot be encrypted
+     */
     @RequestMapping(path = "/add", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
     public ResponseEntity<?> add(@RequestBody(required = true) User user) {
 
+        // save the user, but compute a salted password first
         final User saved;
         try {
-            LOG.info(() -> "before save");
             saved = userRepository.save(setPassword(user));
-            LOG.info(() -> "after save");
         }
         catch (DataAccessException e) {
+            // user cannot be saved - return forbidden
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         catch (NoSuchAlgorithmException e) {
+            // password cannot be computed - return internal server error
+            LOG.log(Level.SEVERE, e, () -> "Security not configured correctly");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
 
+        // create a link to the user in the headers
+        // TBD ideally this id should no be sequential but random so that user IDs cannot be guessed
         final URI location = ServletUriComponentsBuilder
             .fromCurrentServletMapping()
             .path(PATH)
@@ -123,44 +137,37 @@ public class UserController {
         return user;
     }
 
-    protected static final User copyNoPass(User user) {
-
-        final User u = new User();
-        u.setId(user.getId());
-        u.setPhone(user.getPhone());
-        u.setUsername(user.getUsername());
-        return u;
-    }
-
     @RequestMapping(method = RequestMethod.GET, produces = "application/json")
     public Iterable<User> findAll() {
 
-        final List<User> t = new ArrayList<>();
-        userRepository.findAll().forEach(t::add);
-        return t.stream().map(u -> copyNoPass(u)).collect(Collectors.toList());
+        return userRepository.findAll();
     }
 
     @RequestMapping(path = "/{id}", method = RequestMethod.GET, produces = "application/json")
     public ResponseEntity<User> find(@PathVariable(name = "id", required = false) Long id) {
 
-        final User u = userRepository.findOne(id);
-        if (u == null) {
-            ResponseEntity.notFound().build();
+        final Optional<User> u = userRepository.findById(id);
+        if ( !u.isPresent()) {
+            return ResponseEntity.notFound().build();
         }
 
-        return ResponseEntity.ok(copyNoPass(u));
+        return ResponseEntity.ok(u.get());
     }
 
     @RequestMapping(path = "/login", method = RequestMethod.POST, consumes = "application/json", produces = "application/json")
     public ResponseEntity<Token> login(@RequestBody(required = true) Login login) {
 
         try {
-            Optional<Session> active = sessionRepository.findLastByUserUsernameAndEndedNull(login.getUsername());
+            Optional<Session> active = sessionRepository.findLastByUserUsernameAndEndedIsNull(login.getUsername());
             if (active.isPresent()) {
                 Session n = active.get();
-                n.setActive(new Date());
-                n = sessionRepository.save(n);
+                if (Duration.between(n.getActive(), LocalDateTime.now()).getSeconds() > 180) {
+                    return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build();
+                }
                 
+                n.setActive(LocalDateTime.now());
+                n = sessionRepository.save(n);
+
                 final Token t = new Token();
                 t.setId(n.getId());
                 t.setToken(n.getToken());
@@ -170,8 +177,8 @@ public class UserController {
             Optional<User> u = checkPassword(login);
             if (u.isPresent()) {
                 Session s = new Session();
-                s.setActive(new Date());
-                s.setStarted(new Date());
+                s.setActive(LocalDateTime.now());
+                s.setStarted(LocalDateTime.now());
                 s.setToken(UUID.randomUUID().toString());
                 s.setUser(u.get());
                 sessionRepository.save(s);
@@ -199,15 +206,17 @@ public class UserController {
     public ResponseEntity<Token> logout(@PathVariable(name = "id", required = false) Long id) {
 
         try {
-            final Session s = sessionRepository.findOne(id);
-            if (s == null) {
+            final Optional<Session> s = sessionRepository.findById(id);
+            if ( !s.isPresent() || s.get().getEnded() != null) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
-            s.setEnded(new Date());
+            final Session session = s.get();
+            session.setEnded(LocalDateTime.now());
+            sessionRepository.save(session);
 
             final Token t = new Token();
             t.setId(null);
-            t.setToken(s.getToken());
+            t.setToken(session.getToken());
             return ResponseEntity.ok(t);
         }
         catch (PermissionDeniedDataAccessException e) {
