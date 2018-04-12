@@ -161,17 +161,19 @@ public class UserController {
             Optional<Session> active = sessionRepository.findLastByUserUsernameAndEndedIsNull(login.getUsername());
             if (active.isPresent()) {
                 Session n = active.get();
+                // expire previous session
                 if (Duration.between(n.getActive(), LocalDateTime.now()).getSeconds() > 180) {
-                    return ResponseEntity.status(HttpStatus.REQUEST_TIMEOUT).build();
+                    n.setEnded(LocalDateTime.now());
                 }
-                
                 n.setActive(LocalDateTime.now());
                 n = sessionRepository.save(n);
 
-                final Token t = new Token();
-                t.setId(n.getId());
-                t.setToken(n.getToken());
-                return ResponseEntity.ok(t);
+                if (n.getEnded() == null) {
+                    final Token t = new Token();
+                    t.setId(n.getId());
+                    t.setToken(n.getToken());
+                    return ResponseEntity.ok(t);
+                }
             }
 
             Optional<User> u = checkPassword(login);
